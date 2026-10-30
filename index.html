@@ -728,8 +728,8 @@ cp "<span class="guide-filename">Cosmic-Nebula</span>-Terminal.ron" ~/.config/co
             settingsWin.className = `md:col-span-5 flex flex-col overflow-hidden cosmic-shadow transition-all ${rClass}`;
             settingsWin.style.backgroundColor = `rgba(${containerRgb.r}, ${containerRgb.g}, ${containerRgb.b}, ${alphaVal})`;
             settingsWin.style.backdropFilter = state.isFrosted ? 'blur(16px)' : 'none';
-            settingsWin.style.border = `1px solid ${state.colors.accent}40`;
-            settingsWin.style.borderLeft = `${state.activeHint}px solid ${state.colors.accent}`;
+            // Applied active_hint as a full window border stroke instead of just left
+            settingsWin.style.border = `${state.activeHint}px solid ${state.colors.accent}`;
             settingsWin.style.color = state.colors.text;
 
             termWin.className = `md:col-span-7 flex flex-col overflow-hidden cosmic-shadow transition-all ${rClass}`;
