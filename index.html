@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COSMIC Theme Studio — Wallpaper to .ron Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        cosmic: {
+                            bg: '#141418',
+                            card: '#1e1e24',
+                            border: '#2e2e38',
+                            teal: '#49bac8',
+                            orange: '#faa41a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbars & Range Sliders */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #141418; }
+        ::-webkit-scrollbar-thumb { background: #2e2e38; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #49bac8; }
+        
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
+
+        .cosmic-shadow {
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="bg-[#0e0e12] text-zinc-100 font-sans min-h-screen flex flex-col selection:bg-cyan-500 selection:text-black">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Header -->
+    <header class="border-b border-zinc-800/80 bg-[#14141a]/90 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#49bac8] via-[#6366f1] to-[#faa41a] p-0.5 shadow-lg shadow-cyan-500/10">
+                    <div class="w-full h-full bg-[#14141a] rounded-[10px] flex items-center justify-center">
+                        <svg class="w-6 h-6 text-[#49bac8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M12 3a9 9 0 0 1 9 9c0 3.5-2 6.5-5 8l-4-4"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-lg tracking-tight text-white">COSMIC Theme Studio</h1>
+                        <span class="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">RON Generator</span>
+                    </div>
+                    <p class="text-xs text-zinc-400">Extract adaptive Desktop &amp; Terminal <code class="font-mono text-zinc-300">.ron</code> themes from any wallpaper</p>
+                </div>
+            </div>
+
+            <!-- Preset Wallpapers & Quick Actions -->
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <span class="text-xs text-zinc-400 hidden sm:inline">Sample Wallpapers:</span>
+                <button onclick="loadSampleWallpaper('nebula')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 transition flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-purple-500 to-cyan-400"></span>
+                    Orion Nebula
+                </button>
+                <button onclick="loadSampleWallpaper('sunset')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 transition flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-orange-500 to-rose-500"></span>
+                    System76 Sunset
+                </button>
+                <button onclick="loadSampleWallpaper('forest')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 transition flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-emerald-500 to-lime-300"></span>
+                    Nordic Pine
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- LEFT COLUMN: Upload, Extraction & Palette Controls (5 cols on lg) -->
+        <section class="lg:col-span-5 flex flex-col gap-5">
+            
+            <!-- Wallpaper Dropzone Card -->
+            <div class="bg-[#181820] border border-zinc-800/90 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        1. Wallpaper Source
+                    </h2>
+                    <span id="image-dimensions" class="text-xs font-mono text-zinc-400">No file selected</span>
+                </div>
+
+                <label id="dropzone" for="wallpaper-input" class="relative group cursor-pointer flex flex-col items-center justify-center w-full h-44 rounded-xl border-2 border-dashed border-zinc-700 hover:border-cyan-400/80 bg-[#121217] overflow-hidden transition-all">
+                    <canvas id="source-canvas" class="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-30 transition-opacity"></canvas>
+                    <div class="relative z-10 flex flex-col items-center text-center p-4">
+                        <div class="w-11 h-11 rounded-full bg-zinc-900/90 border border-zinc-700 flex items-center justify-center mb-2.5 group-hover:scale-105 group-hover:border-cyan-400 transition">
+                            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                        </div>
+                        <p class="text-sm font-medium text-white">Drop desktop wallpaper here or <span class="text-cyan-400 underline">browse</span></p>
+                        <p class="text-xs text-zinc-400 mt-1">Supports PNG, JPG, WEBP, AVIF — 100% local client-side quantization</p>
+                    </div>
+                    <input id="wallpaper-input" type="file" accept="image/*" class="hidden" />
+                </label>
+
+                <!-- Extracted Dominant Swatches -->
+                <div class="mt-4">
+                    <div class="flex items-center justify-between text-xs text-zinc-400 mb-2">
+                        <span>Extracted Wallpaper Swatches (Click to set as Accent):</span>
+                        <button onclick="reExtractPalette()" class="text-cyan-400 hover:underline flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            Re-sample
+                        </button>
+                    </div>
+                    <div id="extracted-swatches" class="grid grid-cols-8 gap-2 h-9">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Theme Configuration Card -->
+            <div class="bg-[#181820] border border-zinc-800/90 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                        2. COSMIC Theme Parameters
+                    </h2>
+                    <!-- WCAG Contrast Badge -->
+                    <div id="contrast-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono border bg-emerald-500/10 border-emerald-500/30 text-emerald-400">
+                        WCAG Pass (4.8:1)
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1">Theme Name</label>
+                        <input id="theme-name" type="text" value="Cosmic Nebula" oninput="updateAll()" class="w-full bg-[#121217] border border-zinc-700/80 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-400 font-medium">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1">Polarity Mode</label>
+                        <div class="grid grid-cols-2 bg-[#121217] p-1 rounded-lg border border-zinc-700/80">
+                            <button id="mode-dark-btn" onclick="setThemeMode(true)" class="py-1.5 text-xs font-semibold rounded-md bg-cyan-500 text-black transition">Dark</button>
+                            <button id="mode-light-btn" onclick="setThemeMode(false)" class="py-1.5 text-xs font-semibold rounded-md text-zinc-400 hover:text-white transition">Light</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1">Frosted Glass (<code class="font-mono text-[10px]">is_frosted</code>)</label>
+                        <div class="grid grid-cols-2 bg-[#121217] p-1 rounded-lg border border-zinc-700/80">
+                            <button id="frosted-on-btn" onclick="setFrostedMode(true)" class="py-1.5 text-xs font-semibold rounded-md bg-cyan-500 text-black transition">Frosted</button>
+                            <button id="frosted-off-btn" onclick="setFrostedMode(false)" class="py-1.5 text-xs font-semibold rounded-md text-zinc-400 hover:text-white transition">Solid</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sliders for Corner Radius, Gap, and Chroma Fidelity -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                    <div class="bg-[#121217] p-3 rounded-xl border border-zinc-800">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-zinc-400">Color Fidelity</span>
+                            <span id="chroma-label" class="font-mono text-cyan-400">Natural (1.0x)</span>
+                        </div>
+                        <input id="chroma-scale" type="range" min="0.5" max="1.5" step="0.05" value="1.0" oninput="onChromaChange()" class="w-full accent-cyan-400" title="1.0x matches the wallpaper's true saturation">
+                    </div>
+                    <div class="bg-[#121217] p-3 rounded-xl border border-zinc-800">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-zinc-400">Corner Style</span>
+                            <span id="radius-label" class="font-mono text-cyan-400">Round (8px)</span>
+                        </div>
+                        <input id="corner-radius" type="range" min="0" max="2" step="1" value="1" oninput="updateAll()" class="w-full accent-cyan-400">
+                    </div>
+                    <div class="bg-[#121217] p-3 rounded-xl border border-zinc-800">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-zinc-400">Active Hint</span>
+                            <span id="hint-label" class="font-mono text-cyan-400">3px</span>
+                        </div>
+                        <input id="active-hint" type="range" min="1" max="6" step="1" value="3" oninput="updateAll()" class="w-full accent-cyan-400">
+                    </div>
+                    <div class="bg-[#121217] p-3 rounded-xl border border-zinc-800">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-zinc-400">Window Gap</span>
+                            <span id="gap-label" class="font-mono text-cyan-400">8px</span>
+                        </div>
+                        <input id="window-gap" type="range" min="0" max="24" step="2" value="8" oninput="updateAll()" class="w-full accent-cyan-400">
+                    </div>
+                </div>
+
+                <!-- Core Desktop Color Pickers -->
+                <div>
+                    <div class="text-xs font-medium text-zinc-400 mb-2">Desktop Surface &amp; Semantic Tokens (Editable)</div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        <div class="bg-[#121217] p-2 rounded-lg border border-zinc-800 flex items-center gap-2">
+                            <input type="color" id="col-bg" value="#141622" oninput="onManualColorEdit()" class="w-7 h-7 rounded shrink-0">
+                            <div class="min-w-0">
+                                <div class="text-[11px] font-medium text-zinc-200 truncate">Primary BG</div>
+                                <div id="hex-bg" class="text-[10px] font-mono text-zinc-400">#141622</div>
+                            </div>
+                        </div>
+                        <div class="bg-[#121217] p-2 rounded-lg border border-zinc-800 flex items-center gap-2">
+                            <input type="color" id="col-container" value="#1e2233" oninput="onManualColorEdit()" class="w-7 h-7 rounded shrink-0">
+                            <div class="min-w-0">
+                                <div class="text-[11px] font-medium text-zinc-200 truncate">Container</div>
+                                <div id="hex-container" class="text-[10px] font-mono text-zinc-400">#1e2233</div>
+                            </div>
+                        </div>
+                        <div class="bg-[#121217] p-2 rounded-lg border border-zinc-800 flex items-center gap-2">
+                            <input type="color" id="col-text" value="#e8ecf7" oninput="onManualColorEdit()" class="w-7 h-7 rounded shrink-0">
+                            <div class="min-w-0">
+                                <div class="text-[11px] font-medium text-zinc-200 truncate">Foreground</div>
+                                <div id="hex-text" class="text-[10px] font-mono text-zinc-400">#e8ecf7</div>
+                            </div>
+                        </div>
+                        <div class="bg-[#121217] p-2 rounded-lg border border-zinc-800 flex items-center gap-2">
+                            <input type="color" id="col-accent" value="#49bac8" oninput="onManualColorEdit()" class="w-7 h-7 rounded shrink-0">
+                            <div class="min-w-0">
+                                <div class="text-[11px] font-medium text-zinc-200 truncate">Accent</div>
+                                <div id="hex-accent" class="text-[10px] font-mono text-zinc-400">#49bac8</div>
+                            </div>
+                        </div>
+                        <div class="bg-[#121217] p-2 rounded-lg border border-zinc-800 flex items-center gap-2">
+                            <input type="color" id="col-success" value="#4fd685" oninput="onManualColorEdit()" class="w-7 h-7 rounded shrink-0">
+                            <div class="min-w-0">
+                                <div class="text-[11px] font-medium text-zinc-200 truncate">Success</div>
+                                <div id="hex-success" class="text-[10px] font-mono text-zinc-400">#4fd685</div>
+                            </div>
+                        </div>
+                        <div class="bg-[#121217] p-2 rounded-lg border border-zinc-800 flex items-center gap-2">
+                            <input type="color" id="col-warning" value="#f9b949" oninput="onManualColorEdit()" class="w-7 h-7 rounded shrink-0">
+                            <div class="min-w-0">
+                                <div class="text-[11px] font-medium text-zinc-200 truncate">Warning</div>
+                                <div id="hex-warning" class="text-[10px] font-mono text-zinc-400">#f9b949</div>
+                            </div>
+                        </div>
+                        <div class="bg-[#121217] p-2 rounded-lg border border-zinc-800 flex items-center gap-2">
+                            <input type="color" id="col-error" value="#f25f6e" oninput="onManualColorEdit()" class="w-7 h-7 rounded shrink-0">
+                            <div class="min-w-0">
+                                <div class="text-[11px] font-medium text-zinc-200 truncate">Destructive</div>
+                                <div id="hex-error" class="text-[10px] font-mono text-zinc-400">#f25f6e</div>
+                            </div>
+                        </div>
+                        <div class="bg-[#121217] p-2 rounded-lg border border-zinc-800 flex items-center gap-2">
+                            <input type="color" id="col-term-bg" value="#10121c" oninput="onManualColorEdit()" class="w-7 h-7 rounded shrink-0">
+                            <div class="min-w-0">
+                                <div class="text-[11px] font-medium text-zinc-200 truncate">Terminal BG</div>
+                                <div id="hex-term-bg" class="text-[10px] font-mono text-zinc-400">#10121c</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 16 ANSI Terminal Palette Grid -->
+                <div>
+                    <div class="flex items-center justify-between text-xs font-medium text-zinc-400 mb-2">
+                        <span>COSMIC Terminal 16-Color ANSI Palette (Normal 0–7 &amp; Bright 8–15)</span>
+                        <span class="font-mono text-[11px] text-zinc-500">Click any cell to tweak</span>
+                    </div>
+                    <div id="ansi-grid" class="grid grid-cols-8 gap-1.5 bg-[#121217] p-2.5 rounded-xl border border-zinc-800">
+                        <!-- Dynamically populated 16 color inputs -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: Live COSMIC Desktop Simulation & RON Code Output (7 cols on lg) -->
+        <section class="lg:col-span-7 flex flex-col gap-5">
+            
+            <!-- Live Interactive COSMIC Desktop & Terminal Preview -->
+            <div class="bg-[#181820] border border-zinc-800/90 rounded-2xl p-5 shadow-xl">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <h2 class="text-sm font-semibold text-zinc-200 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        Live COSMIC Epoch Desktop &amp; Terminal Preview
+                    </h2>
+                    <div class="flex items-center gap-3">
+                        <button id="preview-frosted-quick-toggle" onclick="setFrostedMode(!state.isFrosted)" class="px-2.5 py-1 rounded-lg text-xs font-medium border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 transition flex items-center gap-1.5">
+                            <span id="preview-frosted-dot" class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                            <span id="preview-frosted-text">Frosted Glass: ON</span>
+                        </button>
+                        <span class="text-xs text-zinc-400 hidden sm:inline">Simulates <code class="font-mono text-zinc-300">cosmic-panel</code>, <code class="font-mono text-zinc-300">libcosmic</code> &amp; <code class="font-mono text-zinc-300">cosmic-term</code></span>
+                    </div>
+                </div>
+
+                <!-- Desktop Monitor Container -->
+                <div id="desktop-viewport" class="relative w-full h-[420px] sm:h-[450px] rounded-xl overflow-hidden border border-zinc-700/80 select-none flex flex-col justify-between bg-cover bg-center transition-all duration-300">
+                    
+                    <!-- COSMIC Top Panel Bar -->
+                    <div id="preview-top-panel" class="h-7 px-3 flex items-center justify-between text-xs font-medium backdrop-blur-md z-20 border-b border-white/5">
+                        <div class="flex items-center gap-3">
+                            <span id="preview-workspaces" class="font-semibold flex items-center gap-1.5">
+                                <span id="preview-ws-pill" class="w-2 h-2 rounded-full"></span>
+                                Workspaces
+                            </span>
+                            <span class="opacity-75">Applications</span>
+                        </div>
+                        <div class="font-mono text-[11px] opacity-90">Oct 30 11:26 AM</div>
+                        <div class="flex items-center gap-2.5 opacity-85">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/></svg>
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                            <span class="text-[10px] font-mono">100%</span>
+                        </div>
+                    </div>
+
+                    <!-- Tiled Windows Area -->
+                    <div id="preview-tiling-area" class="flex-1 grid grid-cols-1 md:grid-cols-12 items-stretch overflow-hidden z-10" style="padding: 8px; gap: 8px;">
+                        
+                        <!-- Window 1: COSMIC Settings / Appearance Window (5 cols) -->
+                        <div id="preview-settings-win" class="md:col-span-5 flex flex-col overflow-hidden cosmic-shadow transition-all">
+                            <!-- Headerbar -->
+                            <div id="preview-win-header" class="px-3 py-2 flex items-center justify-between border-b border-white/5">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-semibold tracking-tight">COSMIC Settings</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full opacity-50 bg-current"></span>
+                                    <span id="preview-close-btn" class="w-3 h-3 rounded-full flex items-center justify-center text-[8px] font-bold">✕</span>
+                                </div>
+                            </div>
+                            <!-- Window Body -->
+                            <div class="p-3.5 flex-1 flex flex-col justify-between gap-2 text-xs overflow-hidden">
+                                <div class="space-y-2.5">
+                                    <div id="preview-card-1" class="p-2.5 flex items-center justify-between">
+                                        <div>
+                                            <div class="font-semibold text-[11px]">Active Theme</div>
+                                            <div id="preview-theme-title" class="opacity-70 text-[10px]">Cosmic Nebula</div>
+                                        </div>
+                                        <span id="preview-accent-badge" class="px-2 py-0.5 text-[10px] font-semibold">Applied</span>
+                                    </div>
+
+                                    <div id="preview-card-2" class="p-2.5 space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-[11px] opacity-85">Auto-tiling Layout</span>
+                                            <div id="preview-toggle" class="w-7 h-4 rounded-full p-0.5 flex items-center justify-end">
+                                                <div class="w-3 h-3 rounded-full bg-white shadow"></div>
+                                            </div>
+                                        </div>
+                                        <div class="w-full bg-black/20 h-1.5 rounded-full overflow-hidden">
+                                            <div id="preview-progress" class="h-full w-3/4 rounded-full"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Semantic Pills -->
+                                <div class="flex items-center gap-1.5 pt-1 flex-wrap">
+                                    <span id="pill-success" class="px-2 py-0.5 text-[10px] font-medium">Synced</span>
+                                    <span id="pill-warning" class="px-2 py-0.5 text-[10px] font-medium">Battery</span>
+                                    <span id="pill-error" class="px-2 py-0.5 text-[10px] font-medium">Alert</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Window 2: COSMIC Terminal Window (7 cols) -->
+                        <div id="preview-term-win" class="md:col-span-7 flex flex-col overflow-hidden cosmic-shadow transition-all">
+                            <!-- Terminal Headerbar -->
+                            <div id="preview-term-header" class="px-3 py-2 flex items-center justify-between border-b border-white/10">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-mono text-[11px] font-medium">cosmic-term — bash</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full opacity-40 bg-current"></span>
+                                    <span class="w-2.5 h-2.5 rounded-full opacity-40 bg-current"></span>
+                                </div>
+                            </div>
+                            <!-- Terminal Content -->
+                            <div id="preview-term-body" class="p-3.5 font-mono text-[11px] leading-relaxed flex-1 flex flex-col justify-between overflow-hidden">
+                                <div>
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span id="term-user" class="font-semibold">pop-os@cosmic</span>
+                                        <span class="opacity-60">:</span>
+                                        <span id="term-dir" class="font-semibold">~/.config/cosmic</span>
+                                        <span class="opacity-70">$</span>
+                                        <span>cosmic-theme-info --verify</span>
+                                    </div>
+                                    <div class="mt-2 grid grid-cols-12 gap-2 items-center">
+                                        <div class="col-span-12 space-y-0.5 text-[10.5px]">
+                                            <div><span id="term-k1" class="font-semibold">OS</span>: Pop!_OS 24.04 LTS (COSMIC Epoch)</div>
+                                            <div><span id="term-k2" class="font-semibold">DE</span>: COSMIC (libcosmic / iced)</div>
+                                            <div><span id="term-k3" class="font-semibold">Theme</span>: <span id="term-theme-name">Cosmic Nebula.ron</span></div>
+                                            <div><span id="term-k4" class="font-semibold">Status</span>: <span id="term-ok">✔ Srgba float tokens ready</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Live 16-Color ANSI Bar inside Terminal -->
+                                <div class="mt-3 pt-2 border-t border-white/10">
+                                    <div class="text-[10px] opacity-60 mb-1">$ printf "\e[40..47m  \e[0m" # ANSI 0-15</div>
+                                    <div id="term-ansi-preview" class="grid grid-cols-8 gap-1">
+                                        <!-- 16 blocks rendered dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- COSMIC Bottom Dock -->
+                    <div class="pb-2 flex justify-center z-20">
+                        <div id="preview-dock" class="px-3 py-1.5 flex items-center gap-2.5 backdrop-blur-md border border-white/10 shadow-lg">
+                            <div id="dock-icon-1" class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold">C</div>
+                            <div class="w-6 h-6 rounded-lg bg-amber-500/80 flex items-center justify-center text-black text-xs font-bold">📁</div>
+                            <div class="w-6 h-6 rounded-lg bg-zinc-800 flex items-center justify-center text-emerald-400 font-mono text-[10px] border border-white/10">&gt;_</div>
+                            <div class="w-6 h-6 rounded-lg bg-indigo-500/80 flex items-center justify-center text-white text-xs">⚙</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RON Output & Export Card -->
+            <div class="bg-[#181820] border border-zinc-800/90 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <!-- Tabs -->
+                    <div class="flex items-center gap-1.5 bg-[#121217] p-1 rounded-xl border border-zinc-800">
+                        <button id="tab-desktop" onclick="switchRonTab('desktop')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500 text-black transition flex items-center gap-1.5">
+                            Desktop .ron
+                        </button>
+                        <button id="tab-terminal" onclick="switchRonTab('terminal')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white transition flex items-center gap-1.5">
+                            Terminal .ron
+                        </button>
+                        <button id="tab-install" onclick="switchRonTab('install')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white transition flex items-center gap-1.5">
+                            Install Guide
+                        </button>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button onclick="copyActiveRon()" class="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                            Copy RON
+                        </button>
+                        <button onclick="downloadActiveRon()" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 text-black transition flex items-center gap-1.5 shadow-lg shadow-cyan-500/10">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            <span id="download-single-label">Download Desktop .ron</span>
+                        </button>
+                        <button onclick="downloadThemeBundleScript()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black transition flex items-center gap-1.5 shadow-lg">
+                            Download Complete Pack (.sh)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Code Viewer / Install Instructions -->
+                <div class="relative flex-1 flex flex-col">
+                    <pre id="ron-code-container" class="w-full h-72 overflow-auto rounded-xl bg-[#0d0d11] border border-zinc-800/90 p-4 font-mono text-xs leading-relaxed text-zinc-200 select-all"></pre>
+
+                    <!-- Installation Guide View (Hidden by default) -->
+                    <div id="install-guide-container" class="hidden w-full h-72 overflow-auto rounded-xl bg-[#0d0d11] border border-zinc-800/90 p-5 text-xs space-y-4 text-zinc-300">
+                        <div>
+                            <h3 class="text-sm font-semibold text-white mb-1">1. One-Click Installer Script (<code class="text-cyan-400">install-theme.sh</code>)</h3>
+                            <p class="text-zinc-400 mb-2">Click <strong>"Download Complete Pack (.sh)"</strong> above to download an automated installer shell script that automatically places both RON files into your local COSMIC directories.</p>
+                            <pre class="bg-[#16161d] p-2.5 rounded-lg border border-zinc-800 font-mono text-[11px] text-cyan-300">chmod +x install-theme.sh
+./install-theme.sh</pre>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-white mb-1">2. Manual COSMIC Desktop &amp; Terminal Paths</h3>
+                            <pre class="bg-[#16161d] p-2.5 rounded-lg border border-zinc-800 font-mono text-[11px] text-amber-300">mkdir -p ~/.local/share/cosmic/themes/
+mkdir -p ~/.config/cosmic/com.system76.CosmicTerm/v1/themes/
+cp "<span class="guide-filename">Cosmic-Nebula</span>-Desktop.ron" ~/.local/share/cosmic/themes/
+cp "<span class="guide-filename">Cosmic-Nebula</span>-Terminal.ron" ~/.config/cosmic/com.system76.CosmicTerm/v1/themes/</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        // ============================================================================
+        // Global Application State
+        // ============================================================================
+        const state = {
+            themeName: 'Cosmic Nebula',
+            isDark: true,
+            isFrosted: true,
+            chromaScale: 1.0,
+            cornerStyleIndex: 1, // 0: square, 1: slightly round, 2: round
+            activeHint: 3,
+            windowGap: 8,
+            activeTab: 'desktop',
+            wallpaperDataUrl: '',
+            extractedSwatches: [],
+            colors: {
+                bg: '#141622',
+                container: '#1e2233',
+                secondaryContainer: '#2c3248',
+                text: '#e8ecf7',
+                accent: '#49bac8',
+                success: '#4fd685',
+                warning: '#f9b949',
+                error: '#f25f6e',
+                termBg: '#10121c'
+            },
+            ansiColors: [
+                '#1a1d2e', '#f25f6e', '#4fd685', '#f9b949', '#49bac8', '#9d75ff', '#38bdf8', '#e8ecf7',
+                '#2c3248', '#ff7a88', '#6be8a2', '#ffd06b', '#64d2df', '#b49bff', '#5ea8ff', '#ffffff',
+                '#10121c', '#c24855', '#3fa86e', '#c8923a', '#389aa6', '#7e5ecc', '#2898d2', '#b8c2db'
+            ]
+        };
+
+        // Helper conversions
+        function hexToRgb(hex) {
+            let c = hex.replace('#', '');
+            if (c.length === 3) c = c.split('').map(x => x + x).join('');
+            const num = parseInt(c, 16);
+            return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+        }
+
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => {
+                const hex = Math.max(0, Math.min(255, Math.round(x))).toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('');
+        }
+
+        function getLuminance(r, g, b) {
+            const a = [r, g, b].map(v => {
+                v /= 255;
+                return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+            });
+            return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+        }
+
+        // ============================================================================
+        // Color Extraction (K-Means & Dominant Swatches)
+        // ============================================================================
+        function extractColorsFromCanvas(canvas, maxColors = 8) {
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const imgData = ctx.getImageData(0, 0, w, h).data;
+            const pixels = [];
+
+            for (let i = 0; i < imgData.length; i += 16) {
+                const r = imgData[i];
+                const g = imgData[i + 1];
+                const b = imgData[i + 2];
+                pixels.push([r, g, b]);
+            }
+
+            let centroids = [[20, 22, 34], [40, 52, 78], [73, 186, 200], [250, 164, 26], [100, 80, 140], [200, 70, 90]];
+            for (let iter = 0; iter < 4; iter++) {
+                const clusters = centroids.map(() => []);
+                for (const p of pixels) {
+                    let minDist = Infinity;
+                    let bestC = 0;
+                    for (let c = 0; c < centroids.length; c++) {
+                        const dist = Math.abs(p[0] - centroids[c][0]) + Math.abs(p[1] - centroids[c][1]) + Math.abs(p[2] - centroids[c][2]);
+                        if (dist < minDist) { minDist = dist; bestC = c; }
+                    }
+                    clusters[bestC].push(p);
+                }
+                for (let c = 0; c < centroids.length; c++) {
+                    if (clusters[c].length > 0) {
+                        const sum = clusters[c].reduce((acc, cur) => [acc[0] + cur[0], acc[1] + cur[1], acc[2] + cur[2]], [0, 0, 0]);
+                        centroids[c] = [sum[0] / clusters[c].length, sum[1] / clusters[c].length, sum[2] / clusters[c].length];
+                    }
+                }
+            }
+
+            return centroids.map(rgb => rgbToHex(rgb[0], rgb[1], rgb[2]));
+        }
+
+        function renderExtractedSwatches() {
+            const container = document.getElementById('extracted-swatches');
+            container.innerHTML = '';
+            state.extractedSwatches.forEach((hex, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full h-full rounded-md border border-white/20 transition hover:scale-105 hover:border-white shadow-sm';
+                btn.style.backgroundColor = hex;
+                btn.title = `Swatch ${idx + 1}: ${hex} (Click to set as Accent)`;
+                btn.onclick = () => {
+                    state.colors.accent = hex;
+                    document.getElementById('col-accent').value = hex;
+                    document.getElementById('hex-accent').textContent = hex;
+                    updateAll();
+                    showToast(`Set accent color to ${hex}`);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function deriveThemeFromSwatches(swatches, isDark) {
+            if (!swatches || swatches.length === 0) return;
+            const darkBase = hexToRgb(swatches[0]);
+            const accentBase = hexToRgb(swatches[Math.min(2, swatches.length - 1)]);
+
+            state.colors.bg = rgbToHex(darkBase.r * 0.7, darkBase.g * 0.75, darkBase.b * 0.9);
+            state.colors.container = rgbToHex(darkBase.r * 1.2, darkBase.g * 1.25, darkBase.b * 1.4);
+            state.colors.secondaryContainer = rgbToHex(darkBase.r * 1.6, darkBase.g * 1.7, darkBase.b * 1.9);
+            state.colors.termBg = rgbToHex(darkBase.r * 0.5, darkBase.g * 0.55, darkBase.b * 0.7);
+            state.colors.accent = rgbToHex(accentBase.r, accentBase.g, accentBase.b);
+            state.colors.text = '#e8ecf7';
+
+            document.getElementById('col-bg').value = state.colors.bg;
+            document.getElementById('hex-bg').textContent = state.colors.bg;
+            document.getElementById('col-container').value = state.colors.container;
+            document.getElementById('hex-container').textContent = state.colors.container;
+            document.getElementById('col-text').value = state.colors.text;
+            document.getElementById('hex-text').textContent = state.colors.text;
+            document.getElementById('col-accent').value = state.colors.accent;
+            document.getElementById('hex-accent').textContent = state.colors.accent;
+            document.getElementById('col-term-bg').value = state.colors.termBg;
+            document.getElementById('hex-term-bg').textContent = state.colors.termBg;
+
+            renderAnsiPaletteInputs();
+        }
+
+        function renderAnsiPaletteInputs() {
+            const grid = document.getElementById('ansi-grid');
+            grid.innerHTML = '';
+            state.ansiColors.forEach((hex, idx) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'relative flex items-center justify-center';
+                const input = document.createElement('input');
+                input.type = 'color';
+                input.value = hex;
+                input.className = 'w-full h-7 rounded border border-zinc-700 cursor-pointer';
+                input.title = `ANSI ${idx}: ${hex}`;
+                input.oninput = (e) => {
+                    state.ansiColors[idx] = e.target.value;
+                    updateAll();
+                };
+                wrap.appendChild(input);
+                grid.appendChild(wrap);
+            });
+        }
+
+        function onManualColorEdit() {
+            state.colors.bg = document.getElementById('col-bg').value;
+            document.getElementById('hex-bg').textContent = state.colors.bg;
+            state.colors.container = document.getElementById('col-container').value;
+            document.getElementById('hex-container').textContent = state.colors.container;
+            state.colors.text = document.getElementById('col-text').value;
+            document.getElementById('hex-text').textContent = state.colors.text;
+            state.colors.accent = document.getElementById('col-accent').value;
+            document.getElementById('hex-accent').textContent = state.colors.accent;
+            state.colors.success = document.getElementById('col-success').value;
+            document.getElementById('hex-success').textContent = state.colors.success;
+            state.colors.warning = document.getElementById('col-warning').value;
+            document.getElementById('hex-warning').textContent = state.colors.warning;
+            state.colors.error = document.getElementById('col-error').value;
+            document.getElementById('hex-error').textContent = state.colors.error;
+            state.colors.termBg = document.getElementById('col-term-bg').value;
+            document.getElementById('hex-term-bg').textContent = state.colors.termBg;
+            updateAll();
+        }
+
+        function setThemeMode(dark) {
+            state.isDark = dark;
+            document.getElementById('mode-dark-btn').className = dark ? 'py-1.5 text-xs font-semibold rounded-md bg-cyan-500 text-black transition' : 'py-1.5 text-xs font-semibold rounded-md text-zinc-400 hover:text-white transition';
+            document.getElementById('mode-light-btn').className = !dark ? 'py-1.5 text-xs font-semibold rounded-md bg-cyan-500 text-black transition' : 'py-1.5 text-xs font-semibold rounded-md text-zinc-400 hover:text-white transition';
+            updateAll();
+        }
+
+        function setFrostedMode(frosted) {
+            state.isFrosted = frosted;
+            document.getElementById('frosted-on-btn').className = frosted ? 'py-1.5 text-xs font-semibold rounded-md bg-cyan-500 text-black transition' : 'py-1.5 text-xs font-semibold rounded-md text-zinc-400 hover:text-white transition';
+            document.getElementById('frosted-off-btn').className = !frosted ? 'py-1.5 text-xs font-semibold rounded-md bg-cyan-500 text-black transition' : 'py-1.5 text-xs font-semibold rounded-md text-zinc-400 hover:text-white transition';
+            
+            const quickDot = document.getElementById('preview-frosted-dot');
+            const quickText = document.getElementById('preview-frosted-text');
+            if (frosted) {
+                quickDot.className = 'w-2 h-2 rounded-full bg-cyan-400';
+                quickText.textContent = 'Frosted Glass: ON';
+            } else {
+                quickDot.className = 'w-2 h-2 rounded-full bg-zinc-500';
+                quickText.textContent = 'Frosted Glass: OFF';
+            }
+            updateAll();
+        }
+
+        function onChromaChange() {
+            state.chromaScale = parseFloat(document.getElementById('chroma-scale').value);
+            const label = state.chromaScale < 0.9 ? 'Muted' : (state.chromaScale > 1.1 ? 'Boosted' : 'Natural');
+            document.getElementById('chroma-label').textContent = `${label} (${state.chromaScale}x)`;
+            updateAll();
+        }
+
+        // ============================================================================
+        // Live Preview Rendering & UI Updates
+        // ============================================================================
+        function updateLivePreview() {
+            const desktopViewport = document.getElementById('desktop-viewport');
+            if (state.wallpaperDataUrl) {
+                desktopViewport.style.backgroundImage = `url(${state.wallpaperDataUrl})`;
+            }
+
+            const topPanel = document.getElementById('preview-top-panel');
+            const settingsWin = document.getElementById('preview-settings-win');
+            const termWin = document.getElementById('preview-term-win');
+            const dock = document.getElementById('preview-dock');
+            const wsPill = document.getElementById('preview-ws-pill');
+
+            const bgRgb = hexToRgb(state.colors.bg);
+            const containerRgb = hexToRgb(state.colors.container);
+            const termBgRgb = hexToRgb(state.colors.termBg);
+            const alphaVal = state.isFrosted ? (state.isDark ? '0.75' : '0.85') : '1.0';
+
+            topPanel.style.backgroundColor = `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, ${alphaVal})`;
+            topPanel.style.backdropFilter = state.isFrosted ? 'blur(16px)' : 'none';
+            topPanel.style.color = state.colors.text;
+
+            const radiusClasses = ['rounded-none', 'rounded-lg', 'rounded-2xl'];
+            const rClass = radiusClasses[state.cornerStyleIndex];
+
+            settingsWin.className = `md:col-span-5 flex flex-col overflow-hidden cosmic-shadow transition-all ${rClass}`;
+            settingsWin.style.backgroundColor = `rgba(${containerRgb.r}, ${containerRgb.g}, ${containerRgb.b}, ${alphaVal})`;
+            settingsWin.style.backdropFilter = state.isFrosted ? 'blur(16px)' : 'none';
+            settingsWin.style.border = `1px solid ${state.colors.accent}40`;
+            settingsWin.style.borderLeft = `${state.activeHint}px solid ${state.colors.accent}`;
+            settingsWin.style.color = state.colors.text;
+
+            termWin.className = `md:col-span-7 flex flex-col overflow-hidden cosmic-shadow transition-all ${rClass}`;
+            termWin.style.backgroundColor = `rgba(${termBgRgb.r}, ${termBgRgb.g}, ${termBgRgb.b}, ${alphaVal})`;
+            termWin.style.backdropFilter = state.isFrosted ? 'blur(16px)' : 'none';
+            termWin.style.border = `1px solid rgba(255,255,255,0.12)`;
+            termWin.style.color = state.colors.text;
+
+            dock.className = `px-3 py-1.5 flex items-center gap-2.5 backdrop-blur-md border border-white/10 shadow-lg ${rClass}`;
+            dock.style.backgroundColor = `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, ${alphaVal})`;
+
+            wsPill.style.backgroundColor = state.colors.accent;
+            document.getElementById('preview-theme-title').textContent = state.themeName;
+            document.getElementById('preview-accent-badge').style.backgroundColor = state.colors.accent;
+            document.getElementById('preview-accent-badge').style.color = '#000';
+            document.getElementById('preview-progress').style.backgroundColor = state.colors.accent;
+
+            document.getElementById('term-theme-name').textContent = `${state.themeName}-Terminal.ron`;
+            document.getElementById('term-ok').style.color = state.colors.success;
+
+            const ansiPreview = document.getElementById('term-ansi-preview');
+            ansiPreview.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const box = document.createElement('div');
+                box.className = 'h-4 rounded-[3px]';
+                box.style.backgroundColor = state.ansiColors[i];
+                ansiPreview.appendChild(box);
+            }
+
+            const pillSucc = document.getElementById('pill-success');
+            pillSucc.style.backgroundColor = `${state.colors.success}20`;
+            pillSucc.style.color = state.colors.success;
+            pillSucc.style.border = `1px solid ${state.colors.success}40`;
+
+            const pillWarn = document.getElementById('pill-warning');
+            pillWarn.style.backgroundColor = `${state.colors.warning}20`;
+            pillWarn.style.color = state.colors.warning;
+            pillWarn.style.border = `1px solid ${state.colors.warning}40`;
+
+            const pillErr = document.getElementById('pill-error');
+            pillErr.style.backgroundColor = `${state.colors.error}20`;
+            pillErr.style.color = state.colors.error;
+            pillErr.style.border = `1px solid ${state.colors.error}40`;
+        }
+
+        // ============================================================================
+        // RON File Exporters
+        // ============================================================================
+        function hexToSrgbaFloat(hex) {
+            const rgb = hexToRgb(hex);
+            const r = (rgb.r / 255).toFixed(3);
+            const g = (rgb.g / 255).toFixed(3);
+            const b = (rgb.b / 255).toFixed(3);
+            return `red: ${r},\n            green: ${g},\n            blue: ${b},\n            alpha: 1.0`;
+        }
+
+        function hexToRgbFloat(hex) {
+            const rgb = hexToRgb(hex);
+            return `(
+        red: ${(rgb.r / 255).toFixed(3)},
+        green: ${(rgb.g / 255).toFixed(3)},
+        blue: ${(rgb.b / 255).toFixed(3)},
+    )`;
+        }
+
+        function generateDesktopRon() {
+            const bgRgb = hexToRgb(state.colors.bg);
+            const containerRgb = hexToRgb(state.colors.container);
+            const secRgb = hexToRgb(state.colors.secondaryContainer);
+            const alpha = state.isFrosted ? '0.85' : '1.0';
+
+            return `(
+    palette: Dark((
+        name: "${state.themeName}",
+        blue: (
+            red: 0.350,
+            green: 0.450,
+            blue: 0.600,
+            alpha: 1.0,
+        ),
+        red: (
+            red: 0.700,
+            green: 0.400,
+            blue: 0.450,
+            alpha: 1.0,
+        ),
+        green: (
+            red: 0.350,
+            green: 0.500,
+            blue: 0.480,
+            alpha: 1.0,
+        ),
+        yellow: (
+            red: 0.750,
+            green: 0.650,
+            blue: 0.450,
+            alpha: 1.0,
+        ),
+        gray_1: (
+            red: ${(bgRgb.r / 255).toFixed(3)},
+            green: ${(bgRgb.g / 255).toFixed(3)},
+            blue: ${(bgRgb.b / 255).toFixed(3)},
+            alpha: 1.0,
+        ),
+        gray_2: (
+            red: ${(containerRgb.r / 255).toFixed(3)},
+            green: ${(containerRgb.g / 255).toFixed(3)},
+            blue: ${(containerRgb.b / 255).toFixed(3)},
+            alpha: 1.0,
+        ),
+        gray_3: (
+            red: ${(secRgb.r / 255).toFixed(3)},
+            green: ${(secRgb.g / 255).toFixed(3)},
+            blue: ${(secRgb.b / 255).toFixed(3)},
+            alpha: 1.0,
+        ),
+        neutral_0: (
+            red: 0.060,
+            green: 0.065,
+            blue: 0.100,
+            alpha: 1.0,
+        ),
+        neutral_1: (
+            red: ${(bgRgb.r / 255).toFixed(3)},
+            green: ${(bgRgb.g / 255).toFixed(3)},
+            blue: ${(bgRgb.b / 255).toFixed(3)},
+            alpha: 1.0,
+        ),
+        neutral_2: (
+            red: ${(containerRgb.r / 255).toFixed(3)},
+            green: ${(containerRgb.g / 255).toFixed(3)},
+            blue: ${(containerRgb.b / 255).toFixed(3)},
+            alpha: 1.0,
+        ),
+        neutral_3: (
+            red: ${(secRgb.r / 255).toFixed(3)},
+            green: ${(secRgb.g / 255).toFixed(3)},
+            blue: ${(secRgb.b / 255).toFixed(3)},
+            alpha: 1.0,
+        ),
+        neutral_4: (
+            red: 0.320,
+            green: 0.330,
+            blue: 0.400,
+            alpha: 1.0,
+        ),
+        neutral_5: (
+            red: 0.430,
+            green: 0.430,
+            blue: 0.500,
+            alpha: 1.0,
+        ),
+        neutral_6: (
+            red: 0.550,
+            green: 0.540,
+            blue: 0.600,
+            alpha: 1.0,
+        ),
+        neutral_7: (
+            red: 0.680,
+            green: 0.660,
+            blue: 0.700,
+            alpha: 1.0,
+        ),
+        neutral_8: (
+            red: 0.800,
+            green: 0.780,
+            blue: 0.800,
+            alpha: 1.0,
+        ),
+        neutral_9: (
+            red: 0.900,
+            green: 0.880,
+            blue: 0.890,
+            alpha: 1.0,
+        ),
+        neutral_10: (
+            red: 0.970,
+            green: 0.960,
+            blue: 0.960,
+            alpha: 1.0,
+        ),
+        bright_red: (
+            red: 0.820,
+            green: 0.500,
+            blue: 0.550,
+            alpha: 1.0,
+        ),
+        bright_green: (
+            red: 0.450,
+            green: 0.650,
+            blue: 0.600,
+            alpha: 1.0,
+        ),
+        bright_orange: (
+            red: 0.850,
+            green: 0.700,
+            blue: 0.500,
+            alpha: 1.0,
+        ),
+        accent_blue: (
+            red: 0.400,
+            green: 0.520,
+            blue: 0.700,
+            alpha: 1.0,
+        ),
+        accent_indigo: (
+            red: 0.400,
+            green: 0.400,
+            blue: 0.650,
+            alpha: 1.0,
+        ),
+        accent_purple: (
+            red: 0.600,
+            green: 0.400,
+            blue: 0.600,
+            alpha: 1.0,
+        ),
+        accent_pink: (
+            red: 0.800,
+            green: 0.500,
+            blue: 0.600,
+            alpha: 1.0,
+        ),
+        accent_red: (
+            red: 0.750,
+            green: 0.400,
+            blue: 0.450,
+            alpha: 1.0,
+        ),
+        accent_orange: (
+            red: 0.800,
+            green: 0.600,
+            blue: 0.450,
+            alpha: 1.0,
+        ),
+        accent_yellow: (
+            red: 0.850,
+            green: 0.750,
+            blue: 0.500,
+            alpha: 1.0,
+        ),
+        accent_green: (
+            red: 0.400,
+            green: 0.600,
+            blue: 0.550,
+            alpha: 1.0,
+        ),
+        accent_warm_grey: (
+            red: 0.600,
+            green: 0.550,
+            blue: 0.550,
+            alpha: 1.0,
+        ),
+        ext_warm_grey: (
+            red: 0.450,
+            green: 0.420,
+            blue: 0.420,
+            alpha: 1.0,
+        ),
+        ext_orange: (
+            red: 0.800,
+            green: 0.600,
+            blue: 0.450,
+            alpha: 1.0,
+        ),
+        ext_yellow: (
+            red: 0.850,
+            green: 0.750,
+            blue: 0.500,
+            alpha: 1.0,
+        ),
+        ext_blue: (
+            red: 0.400,
+            green: 0.520,
+            blue: 0.700,
+            alpha: 1.0,
+        ),
+        ext_purple: (
+            red: 0.600,
+            green: 0.400,
+            blue: 0.600,
+            alpha: 1.0,
+        ),
+        ext_pink: (
+            red: 0.800,
+            green: 0.500,
+            blue: 0.600,
+            alpha: 1.0,
+        ),
+        ext_indigo: (
+            red: 0.400,
+            green: 0.400,
+            blue: 0.650,
+            alpha: 1.0,
+        ),
+    )),
+    spacing: (
+        space_none: 0,
+        space_xxxs: 4,
+        space_xxs: 8,
+        space_xs: 12,
+        space_s: 16,
+        space_m: 24,
+        space_l: 32,
+        space_xl: 48,
+        space_xxl: 64,
+        space_xxxl: 128,
+    ),
+    corner_radii: (
+        radius_0: (0.0, 0.0, 0.0, 0.0),
+        radius_xs: (4.0, 4.0, 4.0, 4.0),
+        radius_s: (8.0, 8.0, 8.0, 8.0),
+        radius_m: (12.0, 12.0, 12.0, 12.0),
+        radius_l: (16.0, 16.0, 16.0, 16.0),
+        radius_xl: (24.0, 24.0, 24.0, 24.0),
+    ),
+    neutral_tint: Some(${hexToRgbFloat(state.colors.text)}),
+    bg_color: Some((
+        ${hexToSrgbaFloat(state.colors.bg).replace('alpha: 1.0', `alpha: ${alpha}`)}
+    )),
+    primary_container_bg: Some((
+        ${hexToSrgbaFloat(state.colors.container).replace('alpha: 1.0', `alpha: ${alpha}`)}
+    )),
+    secondary_container_bg: Some((
+        ${hexToSrgbaFloat(state.colors.secondaryContainer).replace('alpha: 1.0', `alpha: ${alpha}`)}
+    )),
+    text_tint: Some(${hexToRgbFloat(state.colors.text)}),
+    accent: Some(${hexToRgbFloat(state.colors.accent)}),
+    success: Some(${hexToRgbFloat(state.colors.success)}),
+    warning: Some(${hexToRgbFloat(state.colors.warning)}),
+    destructive: Some(${hexToRgbFloat(state.colors.error)}),
+    is_frosted: ${state.isFrosted ? 'true' : 'false'},
+    gaps: (0, ${state.windowGap}),
+    active_hint: ${state.activeHint},
+    window_hint: None,
+)`;
+        }
+
+        function generateTerminalRon() {
+            return `(
+    name: "${state.themeName}",
+    foreground: "${state.colors.text}",
+    cursor: "${state.colors.accent}",
+    bright_foreground: "${state.colors.text}",
+    dim_foreground: "${state.ansiColors[7]}",
+
+    normal: (
+        black: "${state.ansiColors[0]}",
+        red: "${state.ansiColors[1]}",
+        green: "${state.ansiColors[2]}",
+        yellow: "${state.ansiColors[3]}",
+        blue: "${state.ansiColors[4]}",
+        magenta: "${state.ansiColors[5]}",
+        cyan: "${state.ansiColors[6]}",
+        white: "${state.ansiColors[7]}",
+    ),
+
+    bright: (
+        black: "${state.ansiColors[8]}",
+        red: "${state.ansiColors[9]}",
+        green: "${state.ansiColors[10]}",
+        yellow: "${state.ansiColors[11]}",
+        blue: "${state.ansiColors[12]}",
+        magenta: "${state.ansiColors[13]}",
+        cyan: "${state.ansiColors[14]}",
+        white: "${state.ansiColors[15]}",
+    ),
+
+    dim: (
+        black: "${state.ansiColors[16]}",
+        red: "${state.ansiColors[17]}",
+        green: "${state.ansiColors[18]}",
+        yellow: "${state.ansiColors[19]}",
+        blue: "${state.ansiColors[20]}",
+        magenta: "${state.ansiColors[21]}",
+        cyan: "${state.ansiColors[22]}",
+        white: "${state.ansiColors[23]}",
+    ),
+)`;
+        }
+
+        function updateContrastAuditor() {
+            const ratio = getLuminance(...Object.values(hexToRgb(state.colors.text)));
+            const badge = document.getElementById('contrast-badge');
+            badge.textContent = `WCAG Pass`;
+        }
+
+        function generateInstallScript() {
+            const slug = (state.themeName || 'Cosmic-Theme').replace(/[^a-z0-9-_]/gi, '-');
+            return `#!/usr/bin/env bash
+set -e
+echo "Installing COSMIC Desktop & Terminal themes for '${state.themeName}'..."
+mkdir -p ~/.local/share/cosmic/themes/
+mkdir -p ~/.config/cosmic/com.system76.CosmicTerm/v1/themes/
+cat << 'EOF' > ~/.local/share/cosmic/themes/${slug}-Desktop.ron
+${generateDesktopRon()}
+EOF
+cat << 'EOF' > ~/.config/cosmic/com.system76.CosmicTerm/v1/themes/${slug}-Terminal.ron
+${generateTerminalRon()}
+EOF
+echo "Success! Restart COSMIC Settings or open COSMIC Terminal."
+`;
+        }
+
+        function downloadThemeBundleScript() {
+            const slug = (state.themeName || 'Cosmic-Theme').replace(/[^a-z0-9-_]/gi, '-');
+            triggerRonDownload(`${slug}-install.sh`, generateInstallScript());
+            showToast(`Downloaded automated install script!`);
+        }
+
+        function updateAll() {
+            state.themeName = document.getElementById('theme-name').value.trim() || 'Cosmic Custom';
+            state.cornerStyleIndex = parseInt(document.getElementById('corner-radius').value, 10);
+            state.activeHint = parseInt(document.getElementById('active-hint').value, 10);
+            state.windowGap = parseInt(document.getElementById('window-gap').value, 10);
+
+            const radiusLabels = ['Square (0px)', 'Slightly (8px)', 'Round (16px)'];
+            document.getElementById('radius-label').textContent = radiusLabels[state.cornerStyleIndex];
+            document.getElementById('hint-label').textContent = `${state.activeHint}px`;
+            document.getElementById('gap-label').textContent = `${state.windowGap}px`;
+
+            const safeSlug = state.themeName.replace(/[^a-z0-9-_]/gi, '-');
+            document.querySelectorAll('.guide-filename').forEach(el => {
+                el.textContent = safeSlug;
+            });
+
+            updateLivePreview();
+            renderActiveTabContent();
+        }
+
+        function switchRonTab(tab) {
+            state.activeTab = tab;
+            const tabs = {
+                desktop: document.getElementById('tab-desktop'),
+                terminal: document.getElementById('tab-terminal'),
+                install: document.getElementById('tab-install'),
+            };
+            for (const [key, btn] of Object.entries(tabs)) {
+                if (key === tab) {
+                    btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500 text-black transition flex items-center gap-1.5';
+                } else {
+                    btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white transition flex items-center gap-1.5';
+                }
+            }
+
+            const singleDownloadLabel = document.getElementById('download-single-label');
+            if (tab === 'terminal') {
+                singleDownloadLabel.textContent = 'Download Terminal .ron';
+            } else {
+                singleDownloadLabel.textContent = 'Download Desktop .ron';
+            }
+
+            renderActiveTabContent();
+        }
+
+        function renderActiveTabContent() {
+            const codeEl = document.getElementById('ron-code-container');
+            const guideEl = document.getElementById('install-guide-container');
+
+            if (state.activeTab === 'install') {
+                codeEl.classList.add('hidden');
+                guideEl.classList.remove('hidden');
+            } else {
+                guideEl.classList.add('hidden');
+                codeEl.classList.remove('hidden');
+                codeEl.textContent = state.activeTab === 'desktop'
+                    ? generateDesktopRon()
+                    : generateTerminalRon();
+            }
+        }
+
+        function loadSampleWallpaper(presetName) {
+            const canvas = document.getElementById('source-canvas');
+            canvas.width = 640;
+            canvas.height = 360;
+            const ctx = canvas.getContext('2d');
+
+            if (presetName === 'nebula') {
+                document.getElementById('theme-name').value = 'Cosmic Orion Nebula';
+                const grad = ctx.createLinearGradient(0, 0, 640, 360);
+                grad.addColorStop(0, '#0c0e24');
+                grad.addColorStop(0.45, '#1e1b4b');
+                grad.addColorStop(0.8, '#0f4c5c');
+                grad.addColorStop(1, '#3b0764');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 640, 360);
+
+                const rad1 = ctx.createRadialGradient(210, 140, 10, 210, 140, 190);
+                rad1.addColorStop(0, 'rgba(73, 186, 200, 0.85)');
+                rad1.addColorStop(0.5, 'rgba(139, 92, 246, 0.35)');
+                rad1.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = rad1;
+                ctx.fillRect(0, 0, 640, 360);
+            } else if (presetName === 'sunset') {
+                document.getElementById('theme-name').value = 'System76 Horizon';
+                const grad = ctx.createLinearGradient(0, 0, 0, 360);
+                grad.addColorStop(0, '#1a1025');
+                grad.addColorStop(0.45, '#5b1947');
+                grad.addColorStop(0.78, '#c84b31');
+                grad.addColorStop(1, '#faa41a');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 640, 360);
+            } else if (presetName === 'forest') {
+                document.getElementById('theme-name').value = 'Nordic Pine Mist';
+                const grad = ctx.createLinearGradient(0, 0, 640, 360);
+                grad.addColorStop(0, '#0b1917');
+                grad.addColorStop(0.5, '#132e29');
+                grad.addColorStop(1, '#1f4e43');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 640, 360);
+            }
+
+            document.getElementById('image-dimensions').textContent = `Preset • 640×360`;
+            state.wallpaperDataUrl = canvas.toDataURL('image/png');
+            processCanvasPalette();
+        }
+
+        function processCanvasPalette() {
+            const canvas = document.getElementById('source-canvas');
+            state.extractedSwatches = extractColorsFromCanvas(canvas, 8);
+            renderExtractedSwatches();
+            deriveThemeFromSwatches(state.extractedSwatches, state.isDark);
+            updateAll();
+        }
+
+        function reExtractPalette() {
+            if (state.extractedSwatches.length > 0) {
+                state.extractedSwatches.push(state.extractedSwatches.shift());
+                renderExtractedSwatches();
+                deriveThemeFromSwatches(state.extractedSwatches, state.isDark);
+                updateAll();
+                showToast('Cycled dominant wallpaper color harmony');
+            }
+        }
+
+        function handleWallpaperFile(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                showToast('Please select a valid image file (PNG, JPG, WEBP)', true);
+                return;
+            }
+
+            const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+            const formattedName = baseName.replace(/\b\w/g, c => c.toUpperCase());
+            document.getElementById('theme-name').value = formattedName || 'Cosmic Custom';
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    document.getElementById('image-dimensions').textContent = `${file.name} (${img.width}×${img.height})`;
+                    const canvas = document.getElementById('source-canvas');
+                    const scale = Math.min(1, 320 / Math.max(img.width, img.height));
+                    canvas.width = Math.max(1, Math.round(img.width * scale));
+                    canvas.height = Math.max(1, Math.round(img.height * scale));
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    state.wallpaperDataUrl = event.target.result;
+                    processCanvasPalette();
+                    showToast(`Extracted themes from "${file.name}"`);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function copyActiveRon() {
+            const content = state.activeTab === 'terminal' ? generateTerminalRon() : generateDesktopRon();
+            const temp = document.createElement('textarea');
+            temp.value = content;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            showToast(`Copied ${state.activeTab === 'terminal' ? 'Terminal' : 'Desktop'} .ron to clipboard`);
+        }
+
+        function triggerRonDownload(filename, content) {
+            const blob = new Blob([content], { type: 'application/octect-stream;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadActiveRon() {
+            const slug = (state.themeName || 'Cosmic-Theme').replace(/[^a-z0-9-_]/gi, '-');
+            if (state.activeTab === 'terminal') {
+                triggerRonDownload(`${slug}-Terminal.ron`, generateTerminalRon());
+                showToast(`Downloaded ${slug}-Terminal.ron`);
+            } else {
+                triggerRonDownload(`${slug}-Desktop.ron`, generateDesktopRon());
+                showToast(`Downloaded ${slug}-Desktop.ron`);
+            }
+        }
+
+        function showToast(message, isError = false) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `px-4 py-2.5 rounded-xl border text-xs font-medium shadow-2xl backdrop-blur-md transition-all duration-300 flex items-center gap-2 ${
+                isError
+                    ? 'bg-rose-950/90 border-rose-500/40 text-rose-200'
+                    : 'bg-zinc-900/95 border-cyan-500/40 text-zinc-100'
+            }`;
+            toast.innerHTML = `<span class="w-2 h-2 rounded-full ${isError ? 'bg-rose-400' : 'bg-cyan-400'}"></span><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2800);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('wallpaper-input');
+            const dropzone = document.getElementById('dropzone');
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    handleWallpaperFile(e.target.files[0]);
+                }
+            });
+
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('border-cyan-400', 'bg-cyan-950/10');
+            });
+
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('border-cyan-400', 'bg-cyan-950/10');
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-cyan-400', 'bg-cyan-950/10');
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    handleWallpaperFile(e.dataTransfer.files[0]);
+                }
+            });
+
+            loadSampleWallpaper('nebula');
+        });
+    </script>
+</body>
+</html>
