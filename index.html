@@ -378,37 +378,56 @@
                             <!-- Terminal Headerbar -->
                             <div id="preview-term-header" class="px-3 py-2 flex items-center justify-between border-b border-white/10">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-mono text-[11px] font-medium">cosmic-term — bash</span>
+                                    <span class="font-mono text-[11px] font-medium">cosmic-term — zsh</span>
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <span class="w-2.5 h-2.5 rounded-full opacity-40 bg-current"></span>
                                     <span class="w-2.5 h-2.5 rounded-full opacity-40 bg-current"></span>
                                 </div>
                             </div>
-                            <!-- Terminal Content -->
+                            <!-- Terminal Content showcasing full 16-color ANSI usage -->
                             <div id="preview-term-body" class="p-3.5 font-mono text-[11px] leading-relaxed flex-1 flex flex-col justify-between overflow-hidden">
-                                <div>
+                                <div class="space-y-1.5">
+                                    <!-- Prompt line -->
                                     <div class="flex items-center gap-1.5 flex-wrap">
                                         <span id="term-user" class="font-semibold">pop-os@cosmic</span>
                                         <span class="opacity-60">:</span>
-                                        <span id="term-dir" class="font-semibold">~/.config/cosmic</span>
-                                        <span class="opacity-70">$</span>
-                                        <span>cosmic-theme-info --verify</span>
+                                        <span id="term-dir" class="font-semibold">~/projects/cosmic-term</span>
+                                        <span id="term-git" class="text-[10px] px-1.5 py-0.2 rounded bg-white/10">main*</span>
                                     </div>
-                                    <div class="mt-2 grid grid-cols-12 gap-2 items-center">
-                                        <div class="col-span-12 space-y-0.5 text-[10.5px]">
-                                            <div><span id="term-k1" class="font-semibold">OS</span>: Pop!_OS 24.04 LTS (COSMIC Epoch)</div>
-                                            <div><span id="term-k2" class="font-semibold">DE</span>: COSMIC (libcosmic / iced)</div>
-                                            <div><span id="term-k3" class="font-semibold">Theme</span>: <span id="term-theme-name">Cosmic Nebula.ron</span></div>
-                                            <div><span id="term-k4" class="font-semibold">Status</span>: <span id="term-ok">✔ Srgba float tokens ready</span></div>
+                                    
+                                    <!-- Command executed -->
+                                    <div class="flex items-center gap-1.5 opacity-90">
+                                        <span class="opacity-50">$</span>
+                                        <span id="term-cmd-highlight">cargo build --release --features cosmic</span>
+                                    </div>
+
+                                    <!-- Mock compiler output using ANSI palette colors -->
+                                    <div class="pt-1 space-y-1 text-[10.5px]">
+                                        <div class="flex items-center gap-2">
+                                            <span id="term-ansi-badge-1" class="px-1.5 py-0.5 rounded text-[9px] font-bold">Compiling</span>
+                                            <span class="opacity-80">libcosmic v1.0.0</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span id="term-ansi-badge-2" class="px-1.5 py-0.5 rounded text-[9px] font-bold">Finished</span>
+                                            <span class="opacity-80">release profile [optimized] in 4.2s</span>
+                                        </div>
+                                        <div id="term-ansi-sample-text" class="p-2 rounded bg-black/30 border border-white/5 font-mono text-[10px] space-y-0.5">
+                                            <div id="term-line-red">error[E0382]: use of moved value: `theme`</div>
+                                            <div id="term-line-green">  --> src/renderer.rs:42:15</div>
+                                            <div id="term-line-yellow">   = note: move occurs because `theme` has type</div>
+                                            <div id="term-line-blue">   = help: consider cloning the value</div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Live 16-Color ANSI Bar inside Terminal -->
-                                <div class="mt-3 pt-2 border-t border-white/10">
-                                    <div class="text-[10px] opacity-60 mb-1">$ printf "\e[40..47m  \e[0m" # ANSI 0-15</div>
-                                    <div id="term-ansi-preview" class="grid grid-cols-8 gap-1">
+                                <!-- Live 16-Color ANSI Color Bar showing all Normal & Bright slots -->
+                                <div class="mt-2 pt-2 border-t border-white/10">
+                                    <div class="flex items-center justify-between text-[9px] opacity-70 mb-1">
+                                        <span>ANSI Palette (0–15)</span>
+                                        <span>Active Theme Colors</span>
+                                    </div>
+                                    <div id="term-ansi-preview" class="grid grid-cols-16 gap-0.5">
                                         <!-- 16 blocks rendered dynamically -->
                                     </div>
                                 </div>
@@ -703,7 +722,7 @@ cp "<span class="guide-filename">Cosmic-Nebula</span>-Terminal.ron" ~/.config/co
         // ============================================================================
         function updateLivePreview() {
             const desktopViewport = document.getElementById('desktop-viewport');
-            if (state.wallpaperDataUrl) {
+            if (state.wallpaperDataUrl && desktopViewport) {
                 desktopViewport.style.backgroundImage = `url(${state.wallpaperDataUrl})`;
             }
 
@@ -718,61 +737,138 @@ cp "<span class="guide-filename">Cosmic-Nebula</span>-Terminal.ron" ~/.config/co
             const termBgRgb = hexToRgb(state.colors.termBg);
             const alphaVal = state.isFrosted ? (state.isDark ? '0.75' : '0.85') : '1.0';
 
-            topPanel.style.backgroundColor = `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, ${alphaVal})`;
-            topPanel.style.backdropFilter = state.isFrosted ? 'blur(16px)' : 'none';
-            topPanel.style.color = state.colors.text;
+            if (topPanel) {
+                topPanel.style.backgroundColor = `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, ${alphaVal})`;
+                topPanel.style.backdropFilter = state.isFrosted ? 'blur(16px)' : 'none';
+                topPanel.style.color = state.colors.text;
+            }
 
             const radiusClasses = ['rounded-none', 'rounded-lg', 'rounded-2xl'];
             const rClass = radiusClasses[state.cornerStyleIndex];
 
-            settingsWin.className = `md:col-span-5 flex flex-col overflow-hidden cosmic-shadow transition-all ${rClass}`;
-            settingsWin.style.backgroundColor = `rgba(${containerRgb.r}, ${containerRgb.g}, ${containerRgb.b}, ${alphaVal})`;
-            settingsWin.style.backdropFilter = state.isFrosted ? 'blur(16px)' : 'none';
-            // Applied active_hint as a full window border stroke instead of just left
-            settingsWin.style.border = `${state.activeHint}px solid ${state.colors.accent}`;
-            settingsWin.style.color = state.colors.text;
-
-            termWin.className = `md:col-span-7 flex flex-col overflow-hidden cosmic-shadow transition-all ${rClass}`;
-            termWin.style.backgroundColor = `rgba(${termBgRgb.r}, ${termBgRgb.g}, ${termBgRgb.b}, ${alphaVal})`;
-            termWin.style.backdropFilter = state.isFrosted ? 'blur(16px)' : 'none';
-            termWin.style.border = `1px solid rgba(255,255,255,0.12)`;
-            termWin.style.color = state.colors.text;
-
-            dock.className = `px-3 py-1.5 flex items-center gap-2.5 backdrop-blur-md border border-white/10 shadow-lg ${rClass}`;
-            dock.style.backgroundColor = `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, ${alphaVal})`;
-
-            wsPill.style.backgroundColor = state.colors.accent;
-            document.getElementById('preview-theme-title').textContent = state.themeName;
-            document.getElementById('preview-accent-badge').style.backgroundColor = state.colors.accent;
-            document.getElementById('preview-accent-badge').style.color = '#000';
-            document.getElementById('preview-progress').style.backgroundColor = state.colors.accent;
-
-            document.getElementById('term-theme-name').textContent = `${state.themeName}-Terminal.ron`;
-            document.getElementById('term-ok').style.color = state.colors.success;
-
-            const ansiPreview = document.getElementById('term-ansi-preview');
-            ansiPreview.innerHTML = '';
-            for (let i = 0; i < 8; i++) {
-                const box = document.createElement('div');
-                box.className = 'h-4 rounded-[3px]';
-                box.style.backgroundColor = state.ansiColors[i];
-                ansiPreview.appendChild(box);
+            if (settingsWin) {
+                settingsWin.className = `md:col-span-5 flex flex-col overflow-hidden cosmic-shadow transition-all ${rClass}`;
+                settingsWin.style.backgroundColor = `rgba(${containerRgb.r}, ${containerRgb.g}, ${containerRgb.b}, ${alphaVal})`;
+                settingsWin.style.backdropFilter = state.isFrosted ? 'blur(16px)' : 'none';
+                settingsWin.style.border = `${state.activeHint}px solid ${state.colors.accent}`;
+                settingsWin.style.color = state.colors.text;
             }
 
-            const pillSucc = document.getElementById('pill-success');
-            pillSucc.style.backgroundColor = `${state.colors.success}20`;
-            pillSucc.style.color = state.colors.success;
-            pillSucc.style.border = `1px solid ${state.colors.success}40`;
+            if (termWin) {
+                termWin.className = `md:col-span-7 flex flex-col overflow-hidden cosmic-shadow transition-all ${rClass}`;
+                termWin.style.backgroundColor = `rgba(${termBgRgb.r}, ${termBgRgb.g}, ${termBgRgb.b}, ${alphaVal})`;
+                termWin.style.backdropFilter = state.isFrosted ? 'blur(16px)' : 'none';
+                termWin.style.border = `1px solid rgba(255,255,255,0.12)`;
+                termWin.style.color = state.colors.text;
+            }
 
-            const pillWarn = document.getElementById('pill-warning');
-            pillWarn.style.backgroundColor = `${state.colors.warning}20`;
-            pillWarn.style.color = state.colors.warning;
-            pillWarn.style.border = `1px solid ${state.colors.warning}40`;
+            if (dock) {
+                dock.className = `px-3 py-1.5 flex items-center gap-2.5 backdrop-blur-md border border-white/10 shadow-lg ${rClass}`;
+                dock.style.backgroundColor = `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, ${alphaVal})`;
+            }
 
-            const pillErr = document.getElementById('pill-error');
-            pillErr.style.backgroundColor = `${state.colors.error}20`;
-            pillErr.style.color = state.colors.error;
-            pillErr.style.border = `1px solid ${state.colors.error}40`;
+            if (wsPill) wsPill.style.backgroundColor = state.colors.accent;
+            
+            const themeTitleEl = document.getElementById('preview-theme-title');
+            if (themeTitleEl) themeTitleEl.textContent = state.themeName;
+
+            const accentBadgeEl = document.getElementById('preview-accent-badge');
+            if (accentBadgeEl) {
+                accentBadgeEl.style.backgroundColor = state.colors.accent;
+                accentBadgeEl.style.color = '#000';
+            }
+
+            const progressEl = document.getElementById('preview-progress');
+            if (progressEl) progressEl.style.backgroundColor = state.colors.accent;
+
+            const termThemeNameEl = document.getElementById('term-theme-name');
+            if (termThemeNameEl) termThemeNameEl.textContent = `${state.themeName}-Terminal.ron`;
+
+            const termOkEl = document.getElementById('term-ok');
+            if (termOkEl) termOkEl.style.color = state.colors.success;
+
+            // Live terminal color bindings using actual ANSI palette slots
+            const termUser = document.getElementById('term-user');
+            const termDir = document.getElementById('term-dir');
+            const termGit = document.getElementById('term-git');
+            const termCmd = document.getElementById('term-cmd-highlight');
+            const badge1 = document.getElementById('term-ansi-badge-1');
+            const badge2 = document.getElementById('term-ansi-badge-2');
+            const lineRed = document.getElementById('term-line-red');
+            const lineGreen = document.getElementById('term-line-green');
+            const lineYellow = document.getElementById('term-line-yellow');
+            const lineBlue = document.getElementById('term-line-blue');
+
+            if (termUser) termUser.style.color = state.ansiColors[4]; // Blue ANSI
+            if (termDir) termDir.style.color = state.ansiColors[6];  // Cyan ANSI
+            if (termGit) {
+                termGit.style.backgroundColor = state.ansiColors[3] + '33';
+                termGit.style.color = state.ansiColors[3];
+            }
+            if (termCmd) termCmd.style.color = state.colors.text;
+            if (badge1) {
+                badge1.style.backgroundColor = state.ansiColors[5];
+                badge1.style.color = '#000';
+            }
+            if (badge2) {
+                badge2.style.backgroundColor = state.ansiColors[2];
+                badge2.style.color = '#000';
+            }
+            if (lineRed) lineRed.style.color = state.ansiColors[1];
+            if (lineGreen) lineGreen.style.color = state.ansiColors[2];
+            if (lineYellow) lineYellow.style.color = state.ansiColors[3];
+            if (lineBlue) lineBlue.style.color = state.ansiColors[4];
+
+            // Render full 16-color ANSI strip in terminal preview
+            const ansiPreview = document.getElementById('term-ansi-preview');
+            if (ansiPreview) {
+                ansiPreview.innerHTML = '';
+                for (let i = 0; i < 16; i++) {
+                    const box = document.createElement('div');
+                    box.className = 'h-5 rounded-[2px] transition-all hover:scale-110';
+                    box.style.backgroundColor = state.ansiColors[i];
+                    box.title = `ANSI ${i}: ${state.ansiColors[i]}`;
+                    ansiPreview.appendChild(box);
+                }
+            }
+        }
+
+        function deriveThemeFromSwatches(swatches, isDark) {
+            if (!swatches || swatches.length === 0) return;
+            const darkBase = hexToRgb(swatches[0]);
+            const accentBase = hexToRgb(swatches[Math.min(2, swatches.length - 1)]);
+
+            state.colors.bg = rgbToHex(darkBase.r * 0.7, darkBase.g * 0.75, darkBase.b * 0.9);
+            state.colors.container = rgbToHex(darkBase.r * 1.2, darkBase.g * 1.25, darkBase.b * 1.4);
+            state.colors.secondaryContainer = rgbToHex(darkBase.r * 1.6, darkBase.g * 1.7, darkBase.b * 1.9);
+            state.colors.termBg = rgbToHex(darkBase.r * 0.5, darkBase.g * 0.55, darkBase.b * 0.7);
+            state.colors.accent = rgbToHex(accentBase.r, accentBase.g, accentBase.b);
+            state.colors.text = '#e8ecf7';
+
+            // Harmonize ANSI terminal colors dynamically from wallpaper swatches
+            const s1 = swatches[1] || swatches[0];
+            const s2 = swatches[2] || accentBase;
+            const s3 = swatches[3] || swatches[1];
+            const s4 = swatches[Math.min(4, swatches.length - 1)] || accentBase;
+
+            state.ansiColors = [
+                state.colors.termBg, s1, s2, s3, state.colors.accent, s4, '#38bdf8', state.colors.text,
+                rgbToHex(darkBase.r * 1.5, darkBase.g * 1.5, darkBase.b * 1.5), s1, s2, s3, state.colors.accent, s4, '#64d2df', '#ffffff',
+                state.colors.bg, s1, s2, s3, state.colors.accent, s4, '#2898d2', '#b8c2db'
+            ];
+
+            document.getElementById('col-bg').value = state.colors.bg;
+            document.getElementById('hex-bg').textContent = state.colors.bg;
+            document.getElementById('col-container').value = state.colors.container;
+            document.getElementById('hex-container').textContent = state.colors.container;
+            document.getElementById('col-text').value = state.colors.text;
+            document.getElementById('hex-text').textContent = state.colors.text;
+            document.getElementById('col-accent').value = state.colors.accent;
+            document.getElementById('hex-accent').textContent = state.colors.accent;
+            document.getElementById('col-term-bg').value = state.colors.termBg;
+            document.getElementById('hex-term-bg').textContent = state.colors.termBg;
+
+            renderAnsiPaletteInputs();
         }
 
         // ============================================================================
